@@ -7,9 +7,11 @@ use React\Socket\UnixConnector;
 use React\Socket\TimeoutConnector;
 use React\Socket\ConnectionInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Blackfire\Bridge\ReactHttpServerHelper as BlackfireHandler;
 
 class RequestHandler
 {
+
     use ProcessCommunicationTrait;
 
     /**
@@ -48,7 +50,6 @@ class RequestHandler
      * @var Slave instance
      */
     private $slave;
-
     private $connectionOpen = true;
     private $redirectionTries = 0;
     private $incomingBuffer = '';
@@ -117,8 +118,7 @@ class RequestHandler
 
             // slave available -> connect
             $this->slaveAvailable($slave);
-        }
-        else {
+        } else {
             // keep retrying until slave becomes available
             $this->loop->futureTick([$this, 'getNextSlave']);
         }
@@ -152,8 +152,7 @@ class RequestHandler
 
         $socketPath = $this->getSlaveSocketPath($this->slave->getPort());
         $connector->connect($socketPath)->then(
-            [$this, 'slaveConnected'],
-            [$this, 'slaveConnectFailed']
+                [$this, 'slaveConnected'], [$this, 'slaveConnectFailed']
         );
     }
 
@@ -230,9 +229,8 @@ class RequestHandler
 
         $this->verboseTimer(function($took) use ($e) {
             return sprintf(
-                '<error>Connection to worker %d failed. Try #%d, took %.3fs ' .
-                '(timeout %ds). Error message: [%d] %s</error>',
-                $this->slave->getPort(), $this->redirectionTries, $took, $this->timeout, $e->getCode(), $e->getMessage()
+                    '<error>Connection to worker %d failed. Try #%d, took %.3fs ' .
+                    '(timeout %ds). Error message: [%d] %s</error>', $this->slave->getPort(), $this->redirectionTries, $took, $this->timeout, $e->getCode(), $e->getMessage()
             );
         }, true);
 
@@ -283,6 +281,7 @@ class RequestHandler
      */
     protected function replaceHeader($header, $headersToReplace)
     {
+        $blackfire = new BlackfireHandler();
         $result = $header;
 
         foreach ($headersToReplace as $key => $value) {
@@ -299,4 +298,5 @@ class RequestHandler
 
         return $result;
     }
+
 }
